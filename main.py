@@ -9,13 +9,15 @@ from datetime import datetime
 from openai import OpenAI
 import re
 import random
+import json
+
 
 ENV_PATH = Path(__file__).resolve().parent / ".env"
 load_dotenv(dotenv_path=ENV_PATH, override=True)
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 GOOGLE_SHEET_ID = os.getenv("GOOGLE_SHEET_ID")
-GOOGLE_SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE")
+GOOGLE_SERVICE_ACCOUNT_JSON = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")
 ROUTER_DEBUG = os.getenv("ROUTER_DEBUG", "0") == "1"
 AI_ENABLED = os.getenv("AI_ENABLED", "0") == "1"
 AI_DRY_RUN = os.getenv("AI_DRY_RUN", "0") == "1"
@@ -38,7 +40,7 @@ def ai_mode() -> str:
 print("DEBUG ENV")
 print("BOT_TOKEN =", "SET" if BOT_TOKEN else None)
 print("GOOGLE_SHEET_ID =", repr(GOOGLE_SHEET_ID))
-print("GOOGLE_SERVICE_ACCOUNT_FILE =", repr(GOOGLE_SERVICE_ACCOUNT_FILE))
+print("GOOGLE_SERVICE_ACCOUNT_JSON =", "SET" if GOOGLE_SERVICE_ACCOUNT_JSON else None)
 print("ROUTER_DEBUG =", ROUTER_DEBUG)
 print("AI_ENABLED =", AI_ENABLED)
 print("AI_DRY_RUN =", AI_DRY_RUN)
@@ -64,11 +66,17 @@ from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 
 def get_sheets_client():
-    if not GOOGLE_SHEET_ID or not GOOGLE_SERVICE_ACCOUNT_FILE:
+    if not GOOGLE_SHEET_ID or not GOOGLE_SERVICE_ACCOUNT_JSON:
         return None
 
-    creds = Credentials.from_service_account_file(
-        GOOGLE_SERVICE_ACCOUNT_FILE,
+    try:
+        info = json.loads(GOOGLE_SERVICE_ACCOUNT_JSON)
+    except Exception as e:
+        print("Failed to parse GOOGLE_SERVICE_ACCOUNT_JSON:", e)
+        return None
+
+    creds = Credentials.from_service_account_info(
+        info,
         scopes=["https://www.googleapis.com/auth/spreadsheets"],
     )
 
